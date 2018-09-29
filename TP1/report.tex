@@ -9,6 +9,7 @@
 \usepackage{proof}
 \usepackage{amsmath}
 \usepackage{ amssymb }
+\usepackage{pdfpages}
 \usepackage[left=2cm, right=2cm, top=2cm]{geometry} 
 \begin{document}
 \begin{titlepage}
@@ -58,9 +59,11 @@ Juan Ignacio Suarez\\
 Para realizar el diagrama Entidad-Relación del problema planteado utilizamos el programa \textsc{Dia}.
 \textit{(Ver diagrama adjunto TBD-TP1.dia)}
 
+\begin{figure}[H]
+\includepdf[pages=-, offset=0cm -3cm]{ERD.pdf}
+%\includegraphics[scale=.8]{ERD.pdf}
 
-\includegraphics[width=\textwidth]{ERD.pdf}
-
+\end{figure}
 \newpage
 \section{Pasaje a tablas en MySQL Workbench}
 Para el diseño de las tablas, siguiendo la descripción del trabajo práctico, hemos elegido comprimir la información de \textsc{Propietario}, \textsc{Cliente} y \textsc{Vendedor} en una tabla \textsc{Persona}. Por esto, es responsabilidad del programador mantener las siguientes invariantes:
@@ -74,6 +77,8 @@ Análogamente sucede con las tablas \textsc{posee} y \textsc{visita}.
 
 \textit{(Ver archivo adjunto ER.mwb)}
 
-\includegraphics[width=\textwidth]{ER.pdf}
+\vspace{3cm}
+\hspace{-5cm}
+\includegraphics[scale=.7, trim=0.5cm 11cm 0.5cm 11cm]{ER.pdf}
 
 \end{document}
