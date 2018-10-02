@@ -1,0 +1,45 @@
+/*
+
+// Ej 1) Obtener los nombres de los duenos de los inmuebles
+
+\project_{nombre,apellido} (
+  PoseeInmueble
+  \join_{codigo_propietario = codigo}    
+  Persona
+);
+
+// Ej 2)  
+
+\project_{codigo} (
+  \select_{precio >= 600000 and precio <= 700000} Inmueble
+);
+
+// Ej 3)
+
+\project_{nombre} (
+	Persona
+	\join
+	
+	Cliente
+	\join_{vendedor = argi}
+	\rename_{argi}
+		\project_{codigo}
+			\select_{nombre = "Mirta" and apellido = "Gonzalez"} Persona
+);
+
+// Ej 4)
+\project_{nombre, apellido, codigo_inmueble, direccion} (
+	\rename_{codigo_cliente, nombre, apellido}
+		\project_{codigo, nombre, apellido} Persona
+	\join_{codigo_cliente = codigo} (
+			Cliente 
+		\cross 
+			\rename_{codigo_inmueble, precio, direccion, superficie, nombre_poblacion, nombre_zona} Inmueble
+		\join
+			\rename_{codigo, nombre_poblacion, nombre_zona} Prefierezona
+	)
+);
+
+*/
+
+
