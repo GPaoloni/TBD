@@ -40,6 +40,40 @@
 	)
 );
 
+// Ej 5)
+
+\project_{nombre} (
+	Persona
+	\join_{codigo = codigo_cliente}
+	\project_{codigo_cliente}
+		\select_{nombre_poblacion = "Santa Fe" and nombre_zona = "Norte"} Prefierezona
+);
+
+// Ej 6)
+
+\project_{nombre} (
+	\rename_{codigo_empleado, nombre} 
+		\project_{codigo, nombre} Persona
+	\join_{codigo_empleado = vendedor}
+	
+	Cliente
+	\join_{codigo = codigo_cliente}
+	\project_{codigo_cliente}
+		\select_{nombre_poblacion = "Rosario" and nombre_zona = "Centro"} Prefierezona
+);
+
+// Ej 7)
+
+\project_{nombre} (
+	Persona
+	\join_{codigo = vendedor}
+	\project_{vendedor} (
+		Cliente
+		\join
+		Vendedor
+	)
+);
+
 */
 
 
