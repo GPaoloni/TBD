@@ -1,6 +1,4 @@
-/*
-
-// Ej 1) Obtener los nombres de los duenos de los inmuebles
+// Ej 1) 
 
 \project_{nombre,apellido} (
   PoseeInmueble
@@ -74,6 +72,56 @@
 	)
 );
 
-*/
 
+// Ej 8)
+
+\project_{nombre, telefono, vendedor_nombre} ( 
+	\project_{nombre, telefono, vendedor} (
+		Cliente
+		\join
+		Persona
+		\join_{codigo = codigo_cliente}
+		\project_{codigo_cliente}
+			\select_{"2014-11-06 00:00:00" <= fecha_hora
+						and
+					fecha_hora < "2014-11-09 00:00:00"} Visitas
+	)
+	\join_{vendedor = vendedor_codigo}
+	\rename_{vendedor_codigo, vendedor_nombre} 
+		\project_{codigo, nombre} Persona
+);
+
+
+// Ej 9)
+
+\project_{nombre} (
+	Persona
+	\join_{codigo = codigo_cliente} (
+		\project_{codigo_cliente} PrefiereZona
+		\diff
+		\project_{codigo_cliente}(
+			(
+				\project_{codigo_cliente} PrefiereZona
+				\cross
+				\select_{nombre_poblacion = "Rosario"} Zona
+			)
+			\diff
+			PrefiereZona
+		)
+	)
+);
+
+// Ej 10)
+
+\project_{nombre, c} (
+	Persona
+	\join_{codigo = d}
+	\select_{a < x and c = z and d = w}(
+		\rename_{a,b,c,d}
+		\project_{codigo_cliente, codigo_inmueble, fecha_hora, vendedor} (Visitas \join_{codigo_cliente = codigo} Cliente)
+		\cross
+		\rename_{x,y,z,w}
+		\project_{codigo_cliente, codigo_inmueble, fecha_hora, vendedor} (Visitas \join_{codigo_cliente = codigo} Cliente)
+	)
+);
 
