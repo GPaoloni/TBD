@@ -257,19 +257,31 @@ WHERE NOT EXISTS
 -- g)
 
 /* Acá calculamos C -> Clientes que ya visitaron o tienen programado visitar todos los inmuebles de sus zonas favoritas */
-CREATE VIEW C AS
-SELECT nombre, apellido
-FROM Persona
-WHERE codigo IN (SELECT codigo_cliente FROM PrefiereZona) AND NOT EXISTS(
-    SELECT 1
-    FROM PrefiereZona
-    WHERE PrefiereZona.codigo_cliente = Persona.codigo AND (codigo_cliente, nombre_poblacion, nombre_zona) NOT IN (
-        SELECT Visitas.codigo_cliente, Inmueble.nombre_poblacion, Inmueble.nombre_zona
-        FROM Inmueble JOIN Visitas ON Inmueble.codigo = Visitas.codigo_inmueble
-    )
-);
+/* Acá calculamos Z -> Todas las zonas limitrofes a la zonas de preferencia del cliente  */
 
-/* Acá calculamos Z -> Todas las zonas limitrofes a la zonas de preferencia del cliente */
+SELECT nombre, apellido, nombre_poblacion, nombre_zona
+FROM 
+	(
+	SELECT codigo, nombre, apellido
+	FROM Persona
+	WHERE codigo IN (SELECT codigo_cliente FROM PrefiereZona) AND NOT EXISTS(
+	    SELECT 1
+	    FROM PrefiereZona
+	    WHERE PrefiereZona.codigo_cliente = Persona.codigo AND (codigo_cliente, nombre_poblacion, nombre_zona) NOT IN (
+		SELECT Visitas.codigo_cliente, Inmueble.nombre_poblacion, Inmueble.nombre_zona
+		FROM Inmueble JOIN Visitas ON Inmueble.codigo = Visitas.codigo_inmueble))
+	) AS Clientes2
+JOIN
+	(
+	SELECT codigo_cliente, L.nombre_poblacion, L.nombre_zona 
+		FROM PrefiereZona as P JOIN Limita as L ON (L.nombre_poblacion_2 = P.nombre_poblacion AND L.nombre_zona_2 = P.nombre_zona)
+	UNION
+	SELECT codigo_cliente, nombre_poblacion_2, nombre_zona_2
+		FROM PrefiereZona as P JOIN Limita as L ON (L.nombre_poblacion = P.nombre_poblacion AND L.nombre_zona = P.nombre_zona)
+	) AS PreferenciaExtendida
+ON Clientes2.codigo = PreferenciaExtendida.codigo_cliente;
+
+/* Acá calculamos Z -> Todas las zonas limitrofes a la zonas de preferencia del cliente  
 CREATE VIEW Z AS
 (SELECT nombre_poblacion, nombre_zona
 FROM Limita
