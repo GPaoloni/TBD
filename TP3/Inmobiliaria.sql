@@ -248,44 +248,41 @@ WHERE NOT EXISTS
 (SELECT 1 FROM Zona WHERE nombre_poblacion="Rosario" AND NOT EXISTS
     (SELECT 1 FROM PrefiereZona WHERE nombre_poblacion="Rosario" AND codigo_cliente=Persona.codigo AND
         Zona.nombre_zona=PrefiereZona.nombre_zona));
-
-        /*
-    (SELECT COUNT(1) FROM PrefiereZona WHERE codigo_cliente=codigo AND nombre_poblacion="Rosario")
-    =
-    (SELECT COUNT(1) FROM Zona WHERE nombre_poblacion="Rosario");
-    */
-
 -- g)
--- Cliente,Inmueble tq. el inmueble esta en la zona de preferencia del cliente
-CREATE OR REPLACE VIEW CliInmueble (codigo_cliente, codigo) AS SELECT codigo_cliente, codigo 
-FROM PrefiereZona,Inmueble WHERE PrefiereZona.nombre_poblacion = Inmueble.nombre_poblacion AND PrefiereZona.nombre_zona = Inmueble.nombre_zona;
--- Clientes que visitaron todos los inmuebles que estan es sus zonas de preferencia
-CREATE OR REPLACE VIEW VisitAll (codigo_cliente) AS SELECT DISTINCT codigo_cliente 
-FROM PrefiereZona WHERE NOT EXISTS (SELECT * FROM CliInmueble WHERE PrefiereZona.codigo_cliente = CliInmueble.codigo_cliente AND 
-                        NOT EXISTS (SELECT * FROM Visitas 
-                                    WHERE CliInmueble.codigo_cliente = Visitas.codigo_cliente AND Visitas.codigo_inmueble = CliInmueble.codigo));
--- Codigos clientes y zonas de preferencia candidatas para aquellos que visitaron todos los inmuebles
-CREATE OR REPLACE VIEW ClientesZonas AS
-SELECT V.codigo_cliente, nombre_poblacion, nombre_zona
-FROM
-    VisitAll as V
-JOIN
-    (
-    SELECT codigo_cliente, L.nombre_poblacion, L.nombre_zona 
-        FROM PrefiereZona as P JOIN Limita as L ON (L.nombre_poblacion_2 = P.nombre_poblacion AND L.nombre_zona_2 = P.nombre_zona)
-    UNION
-    SELECT codigo_cliente, nombre_poblacion_2, nombre_zona_2
-        FROM PrefiereZona as P JOIN Limita as L ON (L.nombre_poblacion = P.nombre_poblacion AND L.nombre_zona = P.nombre_zona)
-    ) AS PreferenciaExtendida
-ON V.codigo_cliente = PreferenciaExtendida.codigo_cliente;
 
--- Agregamos los nombres para poder devolver
-CREATE OR REPLACE VIEW NombresClientesZonas AS
-SELECT codigo, nombre, apellido, nombre_poblacion, nombre_zona
-FROM ClientesZonas JOIN Persona ON (codigo = codigo_cliente);
+-- vista "CLIENTES_VISITAS":
+-- Todos los clientes que prefieren zonas, tal que no haya
+-- ningun inmueble en una zona preferida que no aparezca en la tabla visitas
 
--- Consulta final
-SELECT P.nombre, P.apellido, I.codigo, I.nombre_poblacion, I.nombre_zona, I.precio
-FROM NombresClientesZonas AS P JOIN Inmueble AS I 
-    ON (P.nombre_poblacion = I.nombre_poblacion AND P.nombre_zona = I.nombre_zona);
+CREATE VIEW CLIENTES_VISITAS 
+AS
+SELECT Persona.*
+FROM  Persona, PrefiereZona AS PZ
+WHERE Persona.codigo = PZ.codigo_cliente
+AND   NOT EXISTS (SELECT 1
+                  FROM   Inmueble, PrefiereZona
+                  WHERE  Inmueble.nombre_poblacion = PrefiereZona.nombre_poblacion 
+                  AND    Inmueble.nombre_zona = PrefiereZona.nombre_zona 
+                  AND    Persona.codigo = PrefiereZona.codigo_cliente
+                  AND NOT EXISTS (SELECT 1
+                                  FROM   Visitas
+                                  WHERE  Visitas.codigo_cliente = Persona.codigo
+                                  AND    Visitas.codigo_inmueble = Inmueble.codigo));
+
+-- Clientes e Inmuebles en zonas no preferidas pero limitrofe a alguna preferida
+
+SELECT  CLIENTES_VISITAS.nombre, CLIENTES_VISITAS.apellido, Inmueble.codigo, Inmueble.nombre_poblacion, Inmueble.nombre_zona, Inmueble.precio
+FROM    CLIENTES_VISITAS, Inmueble
+WHERE   EXISTS (SELECT  1 
+                FROM    PrefiereZona, Limita
+                WHERE   Inmueble.nombre_poblacion = Limita.nombre_poblacion
+                AND     Inmueble.nombre_zona = Limita.nombre_zona
+                AND     Limita.nombre_poblacion_2 = PrefiereZona.nombre_poblacion
+                AND     Limita.nombre_zona_2 = PrefiereZona.nombre_zona
+                AND     CLIENTES_VISITAS.codigo = PrefiereZona.codigo_cliente)
+AND NOT EXISTS (SELECT  1
+                FROM    PrefiereZona
+                WHERE   Inmueble.nombre_poblacion = PrefiereZona.nombre_poblacion
+                AND     Inmueble.nombre_zona = PrefiereZona.nombre_zona
+                AND     PrefiereZona.codigo_cliente = CLIENTES_VISITAS.codigo);
 
