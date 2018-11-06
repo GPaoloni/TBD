@@ -254,64 +254,38 @@ WHERE NOT EXISTS
     =
     (SELECT COUNT(1) FROM Zona WHERE nombre_poblacion="Rosario");
     */
+
 -- g)
-
-/* Acá calculamos C -> Clientes que ya visitaron o tienen programado visitar todos los inmuebles de sus zonas favoritas */
-/* Acá calculamos Z -> Todas las zonas limitrofes a la zonas de preferencia del cliente  */
-
-SELECT nombre, apellido, nombre_poblacion, nombre_zona
-FROM 
-	(
-	SELECT codigo, nombre, apellido
-	FROM Persona
-	WHERE codigo IN (SELECT codigo_cliente FROM PrefiereZona) AND NOT EXISTS(
-	    SELECT 1
-	    FROM PrefiereZona
-	    WHERE PrefiereZona.codigo_cliente = Persona.codigo AND (codigo_cliente, nombre_poblacion, nombre_zona) NOT IN (
-		SELECT Visitas.codigo_cliente, Inmueble.nombre_poblacion, Inmueble.nombre_zona
-		FROM Inmueble JOIN Visitas ON Inmueble.codigo = Visitas.codigo_inmueble))
-	) AS Clientes2
+-- Cliente,Inmueble tq. el inmueble esta en la zona de preferencia del cliente
+CREATE OR REPLACE VIEW CliInmueble (codigo_cliente, codigo) AS SELECT codigo_cliente, codigo 
+FROM PrefiereZona,Inmueble WHERE PrefiereZona.nombre_poblacion = Inmueble.nombre_poblacion AND PrefiereZona.nombre_zona = Inmueble.nombre_zona;
+-- Clientes que visitaron todos los inmuebles que estan es sus zonas de preferencia
+CREATE OR REPLACE VIEW VisitAll (codigo_cliente) AS SELECT DISTINCT codigo_cliente 
+FROM PrefiereZona WHERE NOT EXISTS (SELECT * FROM CliInmueble WHERE PrefiereZona.codigo_cliente = CliInmueble.codigo_cliente AND 
+                        NOT EXISTS (SELECT * FROM Visitas 
+                                    WHERE CliInmueble.codigo_cliente = Visitas.codigo_cliente AND Visitas.codigo_inmueble = CliInmueble.codigo));
+-- Codigos clientes y zonas de preferencia candidatas para aquellos que visitaron todos los inmuebles
+CREATE OR REPLACE VIEW ClientesZonas AS
+SELECT V.codigo_cliente, nombre_poblacion, nombre_zona
+FROM
+    VisitAll as V
 JOIN
-	(
-	SELECT codigo_cliente, L.nombre_poblacion, L.nombre_zona 
-		FROM PrefiereZona as P JOIN Limita as L ON (L.nombre_poblacion_2 = P.nombre_poblacion AND L.nombre_zona_2 = P.nombre_zona)
-	UNION
-	SELECT codigo_cliente, nombre_poblacion_2, nombre_zona_2
-		FROM PrefiereZona as P JOIN Limita as L ON (L.nombre_poblacion = P.nombre_poblacion AND L.nombre_zona = P.nombre_zona)
-	) AS PreferenciaExtendida
-ON Clientes2.codigo = PreferenciaExtendida.codigo_cliente;
+    (
+    SELECT codigo_cliente, L.nombre_poblacion, L.nombre_zona 
+        FROM PrefiereZona as P JOIN Limita as L ON (L.nombre_poblacion_2 = P.nombre_poblacion AND L.nombre_zona_2 = P.nombre_zona)
+    UNION
+    SELECT codigo_cliente, nombre_poblacion_2, nombre_zona_2
+        FROM PrefiereZona as P JOIN Limita as L ON (L.nombre_poblacion = P.nombre_poblacion AND L.nombre_zona = P.nombre_zona)
+    ) AS PreferenciaExtendida
+ON V.codigo_cliente = PreferenciaExtendida.codigo_cliente;
 
-/* Acá calculamos Z -> Todas las zonas limitrofes a la zonas de preferencia del cliente  
-CREATE VIEW Z AS
-(SELECT nombre_poblacion, nombre_zona
-FROM Limita
-WHERE nombre_poblacion_2 = poblacionPreferencia AND nombre_zona_2 = zonaPreferencia)
-UNION
-(SELECT nombre_poblacion_2, nombre_zona_2
-FROM Limita
-WHERE nombre_poblacion = poblacionPreferencia AND nombre_zona = zonaPreferencia)
+-- Agregamos los nombres para poder devolver
+CREATE OR REPLACE VIEW NombresClientesZonas AS
+SELECT codigo, nombre, apellido, nombre_poblacion, nombre_zona
+FROM ClientesZonas JOIN Persona ON (codigo = codigo_cliente);
 
-/*
-For x in C
-    s = vacio
-    for zona in Zonas \ x.zonas_perferidas
-        if( x.zonas_preferidas.alguna_limita_con(zona) )
-            s.append(zona)
-            print x * *s
-*/
+-- Consulta final
+SELECT P.nombre, P.apellido, I.codigo, I.nombre_poblacion, I.nombre_zona, I.precio
+FROM NombresClientesZonas AS P JOIN Inmueble AS I 
+    ON (P.nombre_poblacion = I.nombre_poblacion AND P.nombre_zona = I.nombre_zona);
 
-/*
-SELECT nombre, apellido
-FROM Persona
-WHERE codigo IN (SELECT codigo_cliente FROM PrefiereZona) AND NOT EXISTS(
-    SELECT 1
-    FROM PrefiereZona
-    WHERE PrefiereZona.codigo_cliente = Persona.codigo AND NOT EXISTS(
-        SELECT 1
-        FROM Inmueble JOIN Visitas ON Inmueble.codigo = Visitas.codigo_inmueble
-        WHERE Inmueble.nombre_poblacion = PrefiereZona.nombre_poblacion
-            AND Inmueble.nombre_zona = PrefiereZona.nombre_zona
-            AND Visitas.codigo_cliente = PrefiereZona.codigo_cliente
-    )
-);
-*/
