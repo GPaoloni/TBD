@@ -1,5 +1,13 @@
 #! usr/bin/python
 
+from pprint import pprint as pp
+from copy import deepcopy as dc
+
+def arrows(F):
+    for alpha, betalist in F.items():
+            for beta in betalist:
+                yield alpha, beta
+
 def f_plus(R, F):
     '''
     Toma un conjunto de dependencias funcionales F y una relacion R
@@ -9,35 +17,51 @@ def f_plus(R, F):
     Representamos las DF en un diccionario, con los valores dependientes
     en forma de lista.
     '''
-    dependencies = {f[0]:{f[1]} for f in F}
-    r_power = powerset(R)
-    # Aplicamos todas las reflexividades a P(R)
-    for alpha in r_power:
-        for beta in powerset(alpha):
-            try:
-                dependencies[alpha[0]].add(beta[0])
-            except KeyError:
-                dependencies[alpha[0]] = set(beta[0])
-    '''
-    continue = True
-    while(continue):
-        continue = False
-        # Aplicamos las reglas de aumentatividad
-        for alpha in r_power:
-            for beta, dep in dependencies:
-    '''            
-    return dependencies
+    
+    r_power = [ frozenset(x) for x in powerset(R) if x != [] ]
+    resultado = { x: list(powerset(x)) for x in r_power }
+    for key, value in resultado.items():
+        value.remove([])
+        resultado[key] = { frozenset(x) for x in value }
+    
+    pp(resultado)
+    
+    
+    hayCambios = True
+    while hayCambios:
+        resultado2 = dc(resultado)
+        for alpha, beta in arrows(resultado):
+            for gamma in r_power:
+                resultado2[gamma | alpha].add(gamma | beta)
+        if resultado == resultado2:
+            hayCambios = False
+        else:
+            resultado = resultado2
+       
+        #~ resultado2 = dc(resultado)
+        #~ for a, b in arrows(resultado):
+            #~ for c, d in arrows(resultado):
+                #~ if c == b:
+                    #~ resultado2[a].add(d)
+        #~ if resultado == resultado2:
+            #~ hayCambios = False
+        #~ else:
+            #~ resultado = resultado2
+        
+    pp(len([x for x in arrows(resultado)]))
+    
+    return resultado
+    
     
 
 def powerset(seq):
     """
     Returns all the subsets of this set. This is a generator.
     """
-    #if len(seq) == 0:
-        #yield []
-    if len(seq) == 1:
-        yield seq
-        #yield []
+    if not isinstance(seq, list):
+        seq = list(seq)
+    if len(seq) == 0:
+        yield []
     else:
         for item in powerset(seq[1:]):
             yield [seq[0]]+item
@@ -46,6 +70,12 @@ def powerset(seq):
 
 
 def main():
+    R = "ABCD"
+    s1 = [("A","B"),("B","AD"),("BC","A")]
+    s2 = [("AB","C"),("BD","EF")]
+    
+    f_plus("ABCDEF", s2)
+    
     pass
 
 if __name__ == "__main__":
